@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Management System</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #4a4a4a;
+        }
+
+        /* Form Styles */
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            margin: 10px 0;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Uploaded Files Section */
+        #uploaded-files {
+            margin-top: 20px;
+        }
+
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .file-list li {
+            padding: 8px;
+            background-color: #e9ecef;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-list li a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+
+        .file-list li button {
+            margin-left: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .file-list li button:hover {
+            background-color: #c82333;
+        }
+
+        /* Hidden Sections */
+        #sign-up-container,
+        #upload-section,
+        #settings-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Sign In Container -->
+        <div id="sign-in-container">
+            <h2>Sign In</h2>
+            <form id="sign-in-form">
+                <input type="text" id="sign-in-username" placeholder="Username" required>
+                <input type="password" id="sign-in-password" placeholder="Password" required>
+                <button type="submit">Sign In</button>
+                <button type="button" id="create-account-button">Create Account</button>
+            </form>
+        </div>
+
+        <!-- Sign Up Container -->
+        <div id="sign-up-container" style="display: none;">
+            <h2>Create Account</h2>
+            <form id="sign-up-form">
+                <input type="text" id="sign-up-username" placeholder="Username" required>
+                <input type="password" id="sign-up-password" placeholder="Password" required>
+                <button type="submit">Sign Up</button>
+                <button type="button" id="back-to-sign-in-button">Back to Sign In</button>
+            </form>
+        </div>
+
+        <!-- Upload Section -->
+        <div id="upload-section" style="display: none;">
+            <h2>Upload Files</h2>
+            <form id="upload-form">
+                <input type="text" id="college-input" placeholder="Enter College" required>
+                <input type="file" id="file-input" multiple required>
+                <button type="submit">Upload File</button>
+            </form>
+
+            <h2>Search Uploaded Files</h2>
+            <input type="text" id="search-input" placeholder="Search by college" oninput="searchFiles()">
+
+            <h2>Uploaded Files</h2>
+            <div id="uploaded-files">
+                <ul class="file-list" id="file-list"></ul>
+            </div>
+            <button id="logout-button">Log Out</button>
+            <button id="settings-button">Settings</button>
+        </div>
+
+        <!-- Settings Container -->
+        <div id="settings-container" style="display: none;">
+            <h2>Settings</h2>
+            <input type="password" id="delete-password" placeholder="Enter Password to Delete Account" required>
+            <button id="delete-account-button">Delete Account</button>
+            <button id="back-to-dashboard-button">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show sign-in form by default
+            showSignIn();
+
+            // Toggle between Sign In and Sign Up forms
+            document.getElementById('create-account-button').addEventListener('click', showSignUp);
+            document.getElementById('back-to-sign-in-button').addEventListener('click', showSignIn);
+
+            // Handle sign-in form submission
+            document.getElementById('sign-in-form').addEventListener('submit', handleSignIn);
+
+            // Handle sign-up form submission
+            document.getElementById('sign-up-form').addEventListener('submit', handleSignUp);
+            
+            // Handle file upload form submission
+            document.getElementById('upload-form').addEventListener('submit', handleFileUpload);
+
+            // Handle log out
+            document.getElementById('logout-button').addEventListener('click', handleLogout);
+            
+            // Handle settings actions
+            document.getElementById('settings-button').addEventListener('click', showSettings);
+            document.getElementById('delete-account-button').addEventListener('click', deleteAccount);
+            document.getElementById('back-to-dashboard-button').addEventListener('click', backToDashboard);
+        });
+
+        // Show Sign In form
+        function showSignIn() {
+            document.getElementById('sign-in-container').style.display = 'block';
+            document.getElementById('sign-up-container').style.display = 'none';
+            document.getElementById('upload-section').style.display = 'none';
+            document.getElementById('settings-container').style.display = 'none';
+        }
+
+        // Show Sign Up form
+        function showSignUp() {
+            document.getElementById('sign-in-container').style.display = 'none';
+            document.getElementById('sign-up-container').style.display = 'block';
+        }
+
+        // Handle sign-in form submission
+        function handleSignIn(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const username = document.getElementById('sign-in-username').value;
+            const password = document.getElementById('sign-in-password').value;
+
+            // Simulate user authentication (replace with actual logic)
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const user = users.find(u => u.username === username && u.password === password);
+
+            if (user) {
+                alert('Sign In successful!');
+                document.getElementById('sign-in-container').style.display = 'none';
+                document.getElementById('upload-section').style.display = 'block';
+                fetchUploadedFiles(); // Display files after login
+            } else {
+                alert('Invalid credentials. Please try again.');
+            }
+        }
+
+        // Handle sign-up form submission
+        function handleSignUp(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const username = document.getElementById('sign-up-username').value;
+            const password = document.getElementById('sign-up-password').value;
+
+            // Check if username already exists
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const existingUser = users.find(u => u.username === username);
+
+            if (existingUser) {
+                alert('Username already exists. Please choose a different one.');
+                return;
+            }
+
+            // Save new user to local storage
+            users.push({ username, password });
+            localStorage.setItem('users', JSON.stringify(users));
+
+            alert('Account created successfully! You can now log in.');
+            
+            // Clear sign-up form and show sign-in form again
+            document.getElementById('sign-up-form').reset();
+            showSignIn();
+        }
+
+        // Handle file upload form submission
+        function handleFileUpload(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const collegeInput = document.getElementById('college-input').value;
+            const fileInput = document.getElementById('file-input');
+            const files = fileInput.files;
+
+            // Save file details to local storage
+            Array.from(files).forEach(file => {
+                saveFile(file, collegeInput);
+            });
+            
+            fileInput.value = ''; // Clear the input
+            document.getElementById('college-input').value = ''; // Clear college input
+        }
+
+        // Function to save the file details to local storage
+        function saveFile(file, college) {
+            const fileList = JSON.parse(localStorage.getItem('uploadedFiles')) || [];
+
+            // Create a new file object to save
+            const fileObj = {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                lastModified: file.lastModified,
+                url: URL.createObjectURL(file), // Create a URL for the file
+                college: college // Associate the file with the college
+            };
+
+            // Save the file object in local storage
+            fileList.push(fileObj);
+            localStorage.setItem('uploadedFiles', JSON.stringify(fileList));
+
+            // Display the updated list of uploaded files
+            displayUploadedFiles(fileList);
+        }
+
+        // Function to display the list of uploaded files
+        function displayUploadedFiles(files) {
+            const fileListElement = document.getElementById('file-list');
+            fileListElement.innerHTML = ''; // Clear the current list
+
+            files.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `<strong>${file.college}</strong>: <a href="${file.url}" download>${file.name}</a> (Size: ${file.size} bytes) <button onclick="deleteFile('${file.name}')">Delete</button>`;
+                fileListElement.appendChild(listItem);
+            });
+        }
+
+        // Function to fetch uploaded files from local storage
+        function fetchUploadedFiles() {
+            const fileList = JSON.parse(localStorage.getItem('uploadedFiles')) || [];
+            displayUploadedFiles(fileList);
+        }
+
+        // Function to delete a specific file
+        function deleteFile(fileName) {
+            const fileList = JSON.parse(localStorage.getItem('uploadedFiles')) || [];
+            
+            // Filter out the file to delete
+            const updatedList = fileList.filter(file => file.name !== fileName);
+            localStorage.setItem('uploadedFiles', JSON.stringify(updatedList));
+            displayUploadedFiles(updatedList); // Update displayed files
+        }
+
+        // Handle logout
+        function handleLogout() {
+            showSignIn(); // Show sign-in form
+        }
+
+        // Show settings section
+        function showSettings() {
+            document.getElementById('upload-section').style.display = 'none';
+            document.getElementById('settings-container').style.display = 'block';
+        }
+
+        // Delete user account
+        function deleteAccount() {
+            const password = document.getElementById('delete-password').value;
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+
+            // Check if the user exists and if the password matches
+            const currentUser = users.find(u => u.password === password);
+
+            if (currentUser) {
+                // Filter out the deleted user
+                const updatedUsers = users.filter(u => u.password !== password);
+                localStorage.setItem('users', JSON.stringify(updatedUsers));
+                alert('Account deleted successfully!');
+
+                // Log out and show sign-in form
+                handleLogout();
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
+        }
+
+        // Go back to the dashboard
+        function backToDashboard() {
+            document.getElementById('settings-container').style.display = 'none';
+            document.getElementById('upload-section').style.display = 'block';
+        }
+
+        // Search files based on input
+        function searchFiles() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const files = JSON.parse(localStorage.getItem('uploadedFiles')) || [];
+            const filteredFiles = files.filter(file => file.college.toLowerCase().includes(searchTerm));
+            displayUploadedFiles(filteredFiles);
+        }
+    </script>
+</body>
+</html>
